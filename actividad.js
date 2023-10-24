@@ -1,76 +1,81 @@
+const { promises: fs } = require("fs");
 class ProductManager {
   constructor() {
+    this.path = "./productos.json";
     this.products = [];
     this.productId = 1;
   }
 
-  addProduct(productData) {
-    if (
-      !productData.title ||
-      !productData.description ||
-      !productData.price ||
-      !productData.thumbnail ||
-      !productData.code ||
-      !productData.stock
-    ) {
-      return "Todos los campos son obligatorios.";
-    }
-    if (this.products.some((product) => product.code === productData.code)) {
-      return "El campo 'code' ya existe.";
-    }
-
-    const product = {
+  async addProduct(productData) {
+    const products = JSON.parse(await fs.readFile(this.path, "utf-8"));
+    const newProduct = {
       id: this.productId++,
-      title: productData.title,
-      description: productData.description,
-      price: productData.price,
-      thumbnail: productData.thumbnail,
-      code: productData.code,
-      stock: productData.stock,
+      ...productData,
     };
 
-    this.products.push(product);
+    products.push(newProduct);
 
-    return `El producto ${product.title} ha sido agregado exitosamente.`;
+    await fs.writeFile(this.path, JSON.stringify(products));
+
+    this.products = products;
+
+    return newProduct;
   }
 
-  getProducts() {
-    return this.products;
+  async getProducts() {
+    const products = JSON.parse(await fs.readFile(this.path, "utf-8"));
+
+    this.products = products;
+
+    return products;
   }
 
-  getProductById(id) {
-    const product = this.products.find(
-      (product) => product.id === parseInt(id)
-    );
-    if (!product) {
-      return "El producto no existe.";
-    }
+  async getProductById(id) {
+    const products = JSON.parse(await fs.readFile(this.path, "utf-8"));
+
+    const product = products.find((p) => p.id === id);
+
     return product;
   }
-}
 
-const productManager = new ProductManager();
-console.log(productManager.getProducts());
-console.log(
-  productManager.addProduct({
-    title: "producto prueba",
-    description: "esto es un producto prueba",
-    price: 200,
-    thumbnail: "sin imagen",
-    code: "abc123",
-    stock: 25,
-  })
-);
-console.log(productManager.getProducts());
-console.log(
-  productManager.addProduct({
-    title: "producto prueba",
-    description: "esto es un producto prueba",
-    price: 200,
-    thumbnail: "sin imagen",
-    code: "abc123",
-    stock: 25,
-  })
-);
-console.log(productManager.getProductById(10));
-console.log(productManager.getProductById(1));
+  async updateProduct(id, productData) {
+    const products = JSON.parse(await fs.readFile(this.path, "utf-8"));
+
+    const productIndex = products.findIndex((p) => p.id === id);
+
+    if (productIndex === -1) {
+      return "El producto no existe.";
+    }
+
+    const updatedProduct = {
+      id,
+      ...productData,
+    };
+
+    products[productIndex] = updatedProduct;
+
+    await fs.writeFile(this.path, JSON.stringify(products));
+
+    this.products = products;
+
+    return updatedProduct;
+  }
+
+  async deleteProduct(id) {
+    const products = JSON.parse(await fs.readFile(this.path, "utf-8"));
+
+    const productIndex = products.findIndex((p) => p.id === id);
+
+    if (productIndex === -1) {
+      return "El producto no existe.";
+    }
+
+    products.splice(productIndex, 1);
+
+    await fs.writeFile(this.path, JSON.stringify(products));
+
+    this.products = products;
+
+    return `El producto con id ${id} ha sido eliminado.`;
+  }
+}
